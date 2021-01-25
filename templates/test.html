@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask TEST</title>
+</head>
+
+<body>
+    <h1>Home</h1>
+    <button id="begin" onclick="audioBegin(this)">开始录音</button>
+    <button id="stop" onclick="audioEnd(this)">结束录音</button>
+    <div id="imgTest"></div>
+    <!-- <ul id="recordingslist"></ul> -->
+</body>
+
+<!-- 静态文件引入 -->
+<script type="application/javascript" src="{{url_for('static',filename='js/jquery.min.js')}}"></script>
+<script type="text/javascript" src="{{url_for('static',filename='js/recorder.js')}}"></script>
+
+<!-- 录音及上传功能 | 后续加上音频可视化功能 -->
+<script type="application/javascript">
+    // let audioContext = null;
+    // let chunk = [];
+    // let audioCtx;
+
+    const AudioContext = window.AudioContext || window.webkitAudiContext; //兼容Chrome，Chrome是webkitAudioContext
+    let recorder;
+    var imgUrl;
+
+    // 开始录音按钮的点击事件
+    // func - 申请麦克风权限； 创建音频输入源； 创建Recorder对象 并调用record方法开始录音； 按钮禁用
+    function audioBegin(button) {
+        console.log("Recorder Begin")
+        navigator.mediaDevices.getUserMedia({
+            audio: true
+        }).then(stream => {
+            let input = new AudioContext({
+                sampleRate: 16000
+            }).createMediaStreamSource(stream);
+            recorder = new Recorder(input)
+            recorder.record();
+        })
+    }
+
+    // 结束录音的点击事件
+    // func - 停止录音； 录好的音频的链接； 回收Recorder对象； 按钮释放
+    function audioEnd() {
+        recorder && recorder.stop();
+        console.log("Recorder End and Export");
+
+        recorder.exportWAV(function(blob) {
+
+            let filename = "test.wav"
+            let file = blobToFile(blob, filename)
+            let formData = new FormData()
+            formData.append('file', file, filename)
+
+            $.ajax({
+                url: "/receiveAudio",
+                type: "post",
+                data: formData,
+                contentType: false,
+                processData: false,
+                mimeType: "multipart/form-data",
+                async: false,
+                success: function(res) {
+                    console.log("suc", res)
+                    document.getElementById("imgTest").innerHTML = "<img src='" + res + "' />"
+                },
+                error: function(err) {
+                    console.log("err", err)
+                }
+            });
+
+            recorder.clear()
+        })
+
+    }
+
+    function createDownloadLink() {
+        recorder && recorder.exportWAV(function(blob) {
+            let reader = new FileReader();
+
+            reader.onloadend = function() {
+                let data = reader.result;
+                console.log("testsat", data)
+            }
+            reader.readAsDataURL(blob);
+            let url = URL.createObjectURL(blob);
+            let li = document.createElement('li');
+            let au = document.createElement('audio');
+            let hf = document.createElement('a');
+
+            au.controls = true;
+            au.src = url;
+            hf.href = url;
+            hf.download = new Date().toISOString() + '.wav';
+            hf.innerHTML = hf.download;
+            li.appendChild(au);
+            li.appendChild(hf);
+            recordingslist.appendChild(li);
+
+        })
+    }
+
+    function blobToFile(blob, filename) {
+        blob.lastModifiedDate = new Date()
+        blob.name = filename
+        return blob;
+    }
+</script>
+
+</html>

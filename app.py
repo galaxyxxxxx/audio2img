@@ -6,9 +6,13 @@ import json
 import os
 import time
 import xlrd
+from flask_cors import CORS
 from requests_toolbelt import MultipartEncoder
 
 app = Flask(__name__)
+
+#CORS(app, supports_credentials=True)        #For跨域请求
+#app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(seconds=1)  #缓存控制时长
 
 # 语音识别api
 ASR_URL = 'https://voice.lenovomm.com/lasf/asr'
@@ -66,14 +70,13 @@ def filter(text):
 
 @app.route('/')
 def home():
-    return render_template('home.html')
+    return render_template('index.html')
 
 @app.route('/receiveAudio', methods=['POST'])
 def receiveAudio():
     session = requests.session()
     ixid = int(round(time.time() * 1000))
     pidx = 1
-    over = 0
     file = request.files['file'].read()
     
     txt = send(ixid, pidx, 1, session, file).json().get("rawText","") #识别的语音内容
