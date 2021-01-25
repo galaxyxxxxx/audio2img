@@ -11,7 +11,8 @@
     <h1>Home</h1>
     <button id="begin" onclick="audioBegin(this)">开始录音</button>
     <button id="stop" onclick="audioEnd(this)">结束录音</button>
-    <ul id="recordingslist"></ul>
+    <div id="imgTest"></div>
+    <!-- <ul id="recordingslist"></ul> -->
 </body>
 
 <!-- 静态文件引入 -->
@@ -26,6 +27,7 @@
 
     const AudioContext = window.AudioContext || window.webkitAudiContext; //兼容Chrome，Chrome是webkitAudioContext
     let recorder;
+    var imgUrl;
 
     // 开始录音按钮的点击事件
     // func - 申请麦克风权限； 创建音频输入源； 创建Recorder对象 并调用record方法开始录音； 按钮禁用
@@ -46,73 +48,35 @@
     // func - 停止录音； 录好的音频的链接； 回收Recorder对象； 按钮释放
     function audioEnd() {
         recorder && recorder.stop();
-        console.log("Recorder End and Export")
+        console.log("Recorder End and Export");
 
         recorder.exportWAV(function(blob) {
 
-            console.log("blob hi", blob)
+            let filename = "test.wav"
+            let file = blobToFile(blob, filename)
+            let formData = new FormData()
+            formData.append('file', file, filename)
 
-            // 试试直接发送blob
-            {#$.ajax({#}
-            {#    url:'/receiveAudio',#}
-            {#    type: 'post',#}
-            {#    data: blob,#}
-            {#    success: function (res) {#}
-            {#        console.log("success",res)#}
-            {#    },#}
-            {#    error : function (err) {#}
-            {#        console.log("err",err)#}
-            {#    }#}
-            {# }) #}
+            $.ajax({
+                url: "/receiveAudio",
+                type: "post",
+                data: formData,
+                contentType: false,
+                processData: false,
+                mimeType: "multipart/form-data",
+                async: false,
+                success: function(res) {
+                    console.log("suc", res)
+                    document.getElementById("imgTest").innerHTML = "<img src='" + res + "' />"
+                },
+                error: function(err) {
+                    console.log("err", err)
+                }
+            });
 
-            // 试试发送arraybuffer
-            let reader = new FileReader();
-            reader.readAsArrayBuffer(blob)
-
-            reader.onload = function () {
-fjf
-                $.ajax({
-                    url: '/receiveAudio',
-                    type: 'post',
-                    data: {
-                        "arr": reader.result
-                    },
-                    success: function (res) {
-                        console.log("success",res)
-                    },
-                    error : function (err) {
-                        console.log("err",err)
-                    }
-                })
-
-             }
-
-            {#reader.readAsDataURL(blob);#}
-            {#let url = URL.createObjectURL(blob).toString();#}
-            {#createDownloadLink();#}
-
-            {#let datas = {#}
-            {#    "url": url#}
-            {# } #}
-            {#$.ajax({#}
-            {#    url: '/receiveAudio',#}
-            {#    type: 'post',#}
-            {#    processData: false,#}
-                {#contentType: false,#}
-            {#    contentType: 'application/json; charset=UTF-8',#}
-            {#    data: JSON.stringify(datas),#}
-            {#    dataType: 'text',#}
-            {#    success: function(res) {#}
-            {#        console.log("success", res)#}
-            {#    },#}
-            {#    error: function(err) {#}
-            {#        console.log('error', err)#}
-            {#    }#}
-            {# } )#}
-            {##}
-         {# } )#}
+            recorder.clear()
         })
-        recorder.clear()
+
     }
 
     function createDownloadLink() {
@@ -121,7 +85,7 @@ fjf
 
             reader.onloadend = function() {
                 let data = reader.result;
-                console.log("testsat",data)
+                console.log("testsat", data)
             }
             reader.readAsDataURL(blob);
             let url = URL.createObjectURL(blob);
@@ -139,6 +103,12 @@ fjf
             recordingslist.appendChild(li);
 
         })
+    }
+
+    function blobToFile(blob, filename) {
+        blob.lastModifiedDate = new Date()
+        blob.name = filename
+        return blob;
     }
 </script>
 
