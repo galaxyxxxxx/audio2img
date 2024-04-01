@@ -6,5 +6,5 @@
 ## 技术概要
 前端纯HTML单页应用，后端Flask框架。
 
-&copy; Lenovo UXD 
+
 
